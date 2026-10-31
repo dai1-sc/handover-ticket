@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>一高祭 受付管理システム</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+  :root {
+    --primary: #0f172a;          /* ダークネイビー */
+    --primary-accent: #2563eb;   /* アクセントブルー */
+    --bg: #f8fafc;               /* ライトグレー */
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-dark: #cbd5e1;
+    --success: #16a34a;
+    --warning: #d97706;
+    --error: #dc2626;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    padding: 40px 20px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { 
+    max-width: 640px; 
+    margin: 0 auto; 
+  }
+
+  header { 
+    text-align: left; 
+    margin-bottom: 28px; 
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  header h1 { 
+    font-size: 20px; 
+    font-weight: 700; 
+    color: var(--primary); 
+    letter-spacing: -0.02em;
+  }
+  header p { 
+    font-size: 12px; 
+    color: var(--text-muted); 
+    font-weight: 500;
+  }
+
+  .card {
+    background: var(--card-bg);
+    padding: 20px 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .input-group { margin-bottom: 14px; }
+  .input-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], input[type="number"], input[type="email"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+    background-color: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    background-color: var(--primary);
+    color: white;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+
+  button:hover { background-color: #1e293b; }
+  button:disabled { background-color: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+  .btn-danger { 
+    background-color: #ffffff; 
+    color: var(--error); 
+    border: 1px solid #fca5a5;
+    margin-top: 8px; 
+  }
+  .btn-danger:hover { background-color: #fef2f2; }
+
+  .btn-secondary { 
+    background-color: #ffffff; 
+    color: var(--text); 
+    border: 1px solid var(--border-dark);
+    margin-top: 8px; 
+  }
+  .btn-secondary:hover { background-color: #f1f5f9; }
+
+  .progress-container {
+    background: #e2e8f0;
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+    margin: 12px 0 6px 0;
+  }
+
+  .progress-bar {
+    background: var(--primary-accent);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .stat-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 12px 8px;
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  .stat-box .num {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: monospace, monospace;
+  }
+
+  .stat-box .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .badge-running { background: #dbeafe; color: #1e40af; }
+  .badge-idle { background: #f1f5f9; color: #475569; }
+  .badge-complete { background: #dcfce7; color: #166534; }
+
+  .status-area { margin-top: 14px; font-size: 13px; }
+
+  .instant-link-box {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .instant-btn {
+    display: inline-block;
+    background-color: var(--primary);
+    color: white;
+    padding: 6px 12px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+
+  .ticket-box {
+    background: #f8fafc;
+    padding: 14px;
+    border-radius: 6px;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary-accent);
+  }
+
+  .health-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  #health-check-btn { width: auto; padding: 8px 14px; font-size: 12px; }
+  #health-result {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: #f8fafc;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    flex-grow: 1;
+    text-align: center;
+  }
+
+  .timer-box {
+    background: #f1f5f9;
+    border: 1px solid var(--border-dark);
+    padding: 10px 14px;
+    border-radius: 6px;
+    text-align: center;
+    margin: 12px 0;
+  }
+  .timer-box .timer-val {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-accent);
+    font-family: monospace, monospace;
+  }
+  .timer-box .timer-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* 未記録者検出テーブル用スタイル */
+  .unrecorded-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 12px;
+  }
+  .unrecorded-table th, .unrecorded-table td {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+  .unrecorded-table th {
+    background-color: #f1f5f9;
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .unrecorded-table tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    
+    <header>
+      <h1>一高祭 受付管理</h1>
+      <p>一括チケット発行 ＆ リアルタイム監視</p>
+    </header>
+
+    <!-- 一括発行 & リアルタイム進捗モニター -->
+    <div class="card">
+      <div class="card-title">一括チケット発行・リアルタイム進捗</div>
+      <div class="card-desc">フォーム回答者全員へバッチ単位（指定人数ずつ）でチケット発行＆メール送信を行います。</div>
+
+      <div style="text-align: center;">
+        <span id="batchBadge" class="status-badge badge-idle">状態: 確認中...</span>
+      </div>
+
+      <div class="timer-box">
+        <div class="timer-label">発行・送信 所要時間</div>
+        <div id="timerDisplay" class="timer-val">00:00.0</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div id="statTotal" class="num">-</div>
+          <div class="label">総対象者</div>
+        </div>
+        <div class="stat-box">
+          <div id="statGenerated" class="num">-</div>
+          <div class="label">URL発行済</div>
+        </div>
+        <div class="stat-box">
+          <div id="statSent" class="num">-</div>
+          <div class="label">メール送信済</div>
+        </div>
+      </div>
+
+      <div class="progress-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div style="text-align: right; font-size: 12px; color: var(--text-muted); font-weight: bold;">
+        進捗率: <span id="progressPercent">0</span>%
+      </div>
+      <div style="text-align: center; font-size: 13px; color: var(--primary); font-weight: bold; margin-top: 6px; background: #f7fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px;">
+        次回処理対象：<span id="nextStartRow">-</span> 件目のデータから
+      </div>
+
+      <hr style="margin: 16px 0; border: 0; border-top: 1px solid var(--border);">
+
+      <div class="input-group">
+        <label for="batchSize">1回あたりの処理人数（バッチサイズ）</label>
+        <input id="batchSize" type="number" min="10" max="200" value="50">
+      </div>
+
+      <label class="checkbox-label">
+        <input id="autoContinue" type="checkbox" checked>
+        自動継続（完了するまで1分ごとに自動実行）
+      </label>
+
+      <button id="btnStartBatch" onclick="startBatch()">発行処理を開始 / 1バッチ実行</button>
+      <button id="btnStopBatch" onclick="stopBatch()" class="btn-danger" style="display: none;">自動トリガーを停止</button>
+      <button onclick="clearProgress()" class="btn-secondary">進捗位置をリセット</button>
+
+      <div id="batchMessage" class="status-area"></div>
+    </div>
+
+    <!-- 未記録者検出（Gmail送信履歴照合） -->
+    <div class="card">
+      <div class="card-title">送信済み・未記録者検出（Gmail照合）</div>
+      
+      <div class="card-desc">実際のGmail送信履歴と回答シート（B列）を照合し、送信済みだがシートに記録がない対象者を検出します。</div>
+      <div class="input-group">
+  <label for="unrecordedStartDate">検索開始日</label>
+  <input id="unrecordedStartDate" type="date">
+  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+    指定日以降に送信された申請確認メールを検索します。
+  </div>
+</div>
+      <button onclick="checkUnrecorded()">未記録者を検出・照合する</button>
+
+      <div id="unrecordedResult" class="status-area"></div>
+    </div>
+
+    <!-- 臨時即席発行 -->
+    <div class="card">
+      <div class="card-title">臨時チケット個別発行</div>
+      
+      <div class="input-group">
+        <label for="name">生徒名</label>
+        <input id="name" type="text" placeholder="例：中村 圭孝">
+      </div>
+      
+      <div class="input-group">
+        <label for="email">メールアドレス（空欄時は即席URL発行）</label>
+        <input id="email" type="email" placeholder="example@g.bears.ed.jp">
+      </div>
+      
+      <div class="input-group">
+        <label for="count">発行枚数</label>
+        <input id="count" type="number" min="1" max="10" value="1">
+      </div>
+
+      <button onclick="issue()">チケットを発行する</button>
+
+      <div id="result" class="status-area"></div>
+    </div>
+
+    <!-- 照会検索 -->
+    <div class="card">
+      <div class="card-title">チケット検索照会</div>
+      <div class="card-desc">名前、またはメールアドレスで検索します。</div>
+      
+      <div style="display: flex; gap: 8px;">
+        <input id="keyword" type="text" placeholder="名前 または アドレス">
+        <button onclick="searchTicket()" style="width: 90px; padding: 0 10px;">検索</button>
+      </div>
+
+      <div id="searchResult" class="status-area"></div>
+    </div>
+
+    <!-- ヘルスチェック -->
+    <div class="card">
+      <div class="card-title">サーバー通信ステータス</div>
+      <div class="health-row">
+        <button id="health-check-btn" onclick="runServerDiagnostics()">接続テスト</button>
+        <div id="health-result">未テスト</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/a/macros/g.bears.ed.jp/s/AKfycbxdMLfj6qHITIEInB52DC1DJqojKlb-dWb43AoqMchlkCFyuqRpZtqB_0u6vcFydGw/exec";
+
+    let timerInterval = null;
+    let startTime = 0;
+    let isTimerRunning = false;
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      startTime = Date.now();
+      isTimerRunning = true;
+      updateTimerDisplay();
+      timerInterval = setInterval(updateTimerDisplay, 100);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      isTimerRunning = false;
+    }
+
+    function updateTimerDisplay() {
+      if (!startTime) return;
+      const elapsedMs = Date.now() - startTime;
+      const totalSec = Math.floor(elapsedMs / 1000);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      const ms = Math.floor((elapsedMs % 1000) / 100);
+
+      const formatted = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${ms}`;
+      const timerEl = document.getElementById("timerDisplay");
+      if (timerEl) timerEl.textContent = formatted;
+    }
+
+    window.addEventListener("DOMContentLoaded", function() {
+      fetchProgress();
+      setInterval(fetchProgress, 5000);
+    });
+
+    function safeSetText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function fetchProgress() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const statusBadge = document.getElementById("batchBadge");
+
+          if (!data || data.error) {
+            console.error("進捗取得エラー:", data ? data.error : "データが空です");
+            if (statusBadge) {
+              statusBadge.textContent = "状態: エラー";
+              statusBadge.className = "status-badge badge-idle";
+            }
+            return;
+          }
+
+          safeSetText("statTotal", data.total);
+          safeSetText("statGenerated", data.urlGenerated);
+          safeSetText("statSent", data.mailSent);
+          safeSetText("progressPercent", data.progressPercent);
+
+          if (data.progressPercent === 100 && data.total > 0) {
+            safeSetText("nextStartRow", "完了済み");
+          } else {
+            const nextRow = (data.lastProcessedRow || 1) + 1;
+            const nextDataItem = nextRow - 1;
+            safeSetText("nextStartRow", nextDataItem);
+          }
+
+          const bar = document.getElementById("progressBar");
+          if (bar) bar.style.width = data.progressPercent + "%";
+
+          if (statusBadge) {
+            if (data.isRunning) {
+              statusBadge.textContent = "状態: 処理中...";
+              statusBadge.className = "status-badge badge-running";
+            } else if (data.progressPercent === 100 && data.total > 0) {
+              statusBadge.textContent = "状態: 完了";
+              statusBadge.className = "status-badge badge-complete";
+            } else {
+              statusBadge.textContent = "状態: 停止中";
+              statusBadge.className = "status-badge badge-idle";
+            }
+          }
+
+          if (isTimerRunning && (Date.now() - startTime > 2000)) {
+            if (!data.isRunning || data.progressPercent === 100) {
+              stopTimer();
+              const timerText = document.getElementById("timerDisplay").textContent;
+              const msgDiv = document.getElementById("batchMessage");
+              if (msgDiv) {
+                msgDiv.innerHTML += `<br><span style='color: var(--success); font-weight: bold;'>送信完了！ 計測時間: ${timerText}</span>`;
+              }
+            }
+          }
+        })
+        .withFailureHandler(function(err) {
+          console.error("GAS実行エラー:", err);
+          const statusBadge = document.getElementById("batchBadge");
+          if (statusBadge) {
+            statusBadge.textContent = "状態: 通信エラー";
+            statusBadge.className = "status-badge badge-idle";
+          }
+        })
+        .getBatchProgress();
+    }
+
+    function startBatch() {
+      const batchSize = document.getElementById("batchSize").value;
+      const autoContinue = document.getElementById("autoContinue").checked;
+      const msgDiv = document.getElementById("batchMessage");
+
+      msgDiv.innerHTML = "<span style='color: var(--text-muted);'>1バッチ目の実行を開始しました...</span>";
+      startTimer();
+
+      fetch(`${GAS_URL}?mode=start_batch&batchSize=${batchSize}&autoContinue=${autoContinue}`)
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) {
+            msgDiv.innerHTML = `<span style='color: var(--success); font-weight: bold;'>✅ ${res.message}</span>`;
+          } else {
+            msgDiv.innerHTML = `<span style='color: var(--error); font-weight: bold;'>⚠️ ${res.message}</span>`;
+            stopTimer();
+          }
+          fetchProgress();
+        })
+        .catch(err => {
+          msgDiv.innerHTML = "<span style='color: var(--error);'>通信エラーが発生しました</span>";
+          stopTimer();
+        });
+    }
+
+    function stopBatch() {
+      const msgDiv = document.getElementById("batchMessage");
+      stopTimer();
+      fetch(GAS_URL + "?mode=stop_batch")
+        .then(res => res.json())
+        .then(res => {
+          msgDiv.innerHTML = "<span style='color: var(--warning); font-weight: bold;'>自動実行を停止しました。</span>";
+          fetchProgress();
+        });
+    }
+
+    function clearProgress() {
+      if (!confirm("進捗の読み込み位置を最初（1行目）に戻しますか？")) return;
+      const msgDiv = document.getElementById("batchMessage");
+      stopTimer();
+      safeSetText("timerDisplay", "00:00.0");
+      fetch(GAS_URL + "?mode=clear_progress")
+        .then(res => res.json())
+        .then(res => {
+          msgDiv.innerHTML = "<span style='color: var(--text-muted);'>🔄 進捗位置をリセットしました。</span>";
+          fetchProgress();
+        });
+    }
+
+    // 未記録者検出処理
+    function checkUnrecorded() {
+      const resultDiv = document.getElementById("unrecordedResult");
+      resultDiv.innerHTML = "<span style='color: var(--text-muted);'>Gmail送信履歴を照合中... (処理に数秒かかります)</span>";
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success) {
+            resultDiv.innerHTML = `<span style='color: var(--error); font-weight: bold;'>⚠️ エラー: ${res ? res.message : "取得に失敗しました"}</span>`;
+            return;
+          }
+
+          if (res.count === 0) {
+            resultDiv.innerHTML = "<div style='padding: 10px; background: #dcfce7; color: #166534; border-radius: 6px; font-weight: bold; font-size: 13px;'>未記録の送信履歴はありません（データは正常です）</div>";
+            return;
+          }
+
+          let html = `<p style='color: var(--error); font-weight: bold; margin-bottom: 8px;'>⚠️ 未記録の対象者が ${res.count} 件検出されました：</p>`;
+          html += `<table class='unrecorded-table'>
+                    <thead>
+                      <tr>
+                        <th>メールアドレス</th>
+                        <th>送信日時</th>
+                        <th>件名</th>
+                      </tr>
+                    </thead>
+                    <tbody>`;
+
+          res.unrecorded.forEach(function(item) {
+            html += `<tr>
+                      <td style='font-weight: 600; font-family: monospace;'>${item.email}</td>
+                      <td>${item.date}</td>
+                      <td>${item.subject}</td>
+                    </tr>`;
+          });
+
+          html += `</tbody></table>`;
+          resultDiv.innerHTML = html;
+        })
+        .withFailureHandler(function(err) {
+          resultDiv.innerHTML = `<span style='color: var(--error); font-weight: bold;'>❌ 通信エラー: ${err}</span>`;
+        })
+        .getUnrecordedEmails();
+    }
+
+    function issue() {
+      var name = document.getElementById("name").value;
+      var email = document.getElementById("email").value;
+      var count = document.getElementById("count").value;
+
+      if (!name || !count) {
+        document.getElementById("result").innerHTML = "<span style='color: var(--error); font-weight: bold;'>生徒名と枚数を入力してください</span>";
+        return;
+      }
+
+      document.getElementById("result").innerHTML = "<span style='color: var(--text-muted);'>送信処理中…</span>";
+
+      google.script.run
+        .withSuccessHandler(function(urlsString) {
+          var html = "";
+          if (email) {
+            html += "<p style='color: var(--success); font-weight: bold; margin-bottom: 10px;'>✅ 発行完了！メールを送信しました</p>";
+          } else {
+            html += "<p style='color: var(--success); font-weight: bold; margin-bottom: 10px;'>✅ 即席チケットを発行しました！</p>";
+          }
+
+          var urls = urlsString.split("\n");
+          html += "<div class='instant-link-box'>";
+          urls.forEach(function(url, i) {
+            html += "<p style='margin: 8px 0; font-size: 13px; text-align: left;'><strong>チケット " + (i+1) + ":</strong><a href='" + url + "' target='_blank' class='instant-btn'>👉 開く</a></p>";
+          });
+          html += "</div>";
+
+          document.getElementById("result").innerHTML = html;
+          document.getElementById("name").value = ""; 
+          fetchProgress();
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById("result").innerHTML = "<span style='color: var(--error);'>❌ エラーが発生しました：" + err + "</span>";
+        })
+        .generateTickets(name, email, Number(count));
+    }
+
+    function searchTicket() {
+      var keyword = document.getElementById("keyword").value;
+      if (!keyword) {
+        document.getElementById("searchResult").innerHTML = "<span style='color: var(--error);'>キーワードを入力してください</span>";
+        return;
+      }
+
+      document.getElementById("searchResult").innerHTML = "<span style='color: var(--text-muted);'>検索中…</span>";
+
+      fetch(GAS_URL + "?mode=search_ticket&keyword=" + encodeURIComponent(keyword))
+      .then(res => res.json())
+      .then(data => {
+        if (!data) {
+          document.getElementById("searchResult").innerHTML = "<span style='color: var(--text-muted);'>該当するチケットがありません</span>";
+          return;
+        }
+
+        var html = '<div class="ticket-box">' +
+                   '<p><strong>名前：</strong>' + data.name + '</p>' +
+                   '<p><strong>メール：</strong>' + data.email + '</p>' +
+                   '<p><strong>発券枚数：</strong>' + data.count + ' 枚</p>' +
+                   '<p style="margin-top: 10px; font-weight: bold;">チケットリンク一覧：</p>';
+
+        data.tickets.forEach(function(t, i) {
+          html += '<p style="font-size: 13px; margin-left: 5px;">・チケット' + (i+1) + '：<a href="' + t + '" target="_blank">開く</a></p>';
+        });
+
+        html += '</div>';
+        document.getElementById("searchResult").innerHTML = html;
+      })
+      .catch(() => {
+        document.getElementById("searchResult").innerHTML = "<span style='color: var(--error);'>❌ 通信エラーが発生しました</span>";
+      });
+    }
+
+function checkUnrecorded() {
+  const resultDiv = document.getElementById("unrecordedResult");
+  const dateInput = document.getElementById("unrecordedStartDate");
+
+  const startDate = dateInput ? dateInput.value : "";
+
+  resultDiv.innerHTML =
+    "<span style='color: var(--text-muted);'>Gmail送信履歴を照合中... (処理に数秒かかります)</span>";
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.success) {
+        resultDiv.innerHTML =
+          `<span style='color: var(--error); font-weight: bold;'>エラー: ${
+            res ? res.message : "取得に失敗しました"
+          }</span>`;
+        return;
+      }
+
+      if (res.count === 0) {
+        resultDiv.innerHTML =
+          "<div style='padding: 10px; background: #dcfce7; color: #166534; border-radius: 6px; font-weight: bold; font-size: 13px;'>未記録の送信履歴はありません（データは正常です）</div>";
+        return;
+      }
+
+      let html =
+        `<p style='color: var(--error); font-weight: bold; margin-bottom: 8px;'>未記録の対象者が ${res.count} 件検出されました：</p>`;
+
+      html += `
+        <table class='unrecorded-table'>
+          <thead>
+            <tr>
+              <th>メールアドレス</th>
+              <th>送信日時</th>
+              <th>件名</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      res.unrecorded.forEach(function(item) {
+        html += `
+          <tr>
+            <td style='font-weight: 600; font-family: monospace;'>${escapeHtml(item.email)}</td>
+            <td>${escapeHtml(item.date)}</td>
+            <td>${escapeHtml(item.subject)}</td>
+          </tr>
+        `;
+      });
+
+      html += "</tbody></table>";
+      resultDiv.innerHTML = html;
+    })
+    .withFailureHandler(function(err) {
+      resultDiv.innerHTML =
+        `<span style='color: var(--error); font-weight: bold;'>❌ 通信エラー: ${escapeHtml(String(err))}</span>`;
+    })
+    .getUnrecordedEmails(startDate);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+    function runServerDiagnostics() {
+      const resultDiv = document.getElementById("health-result");
+      const btn = document.getElementById("health-check-btn");
+      
+      btn.disabled = true;
+      btn.innerText = "診断中...";
+      resultDiv.innerText = "通信中...";
+
+      fetch(GAS_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "health_check" })
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerText = "接続テスト";
+        
+        if (data.status === "ok") {
+          resultDiv.innerHTML = `🟢 正常稼働中 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
+          resultDiv.style.color = "#10b981";
+        } else {
+          resultDiv.innerHTML = `🔴 異常: ${data.message}`;
+          resultDiv.style.color = "var(--error)";
+        }
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.innerText = "接続テスト";
+        resultDiv.innerHTML = `🔴 通信不通`;
+        resultDiv.style.color = "var(--error)";
+      });
+    }
+  </script>
+
+</body>
+</html>
