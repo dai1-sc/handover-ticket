@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一高祭 チェックインシステム</title>
+<link rel="icon" href="logo_sc.png" type="image/png">
+
+<!-- ZXing (Zebra Crossing) ライブラリ -->
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+
+<style>
+:root {
+  --primary-color: #1e3a8a; 
+  --bg-color: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-sub: #475569;
+  --border-color: #cbd5e1;
+  
+  --entry-color: #16a34a;
+  --exit-color: #ea580c;
+  --reentry-color: #2563eb;
+  --error-color: #dc2626;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ヘッダー */
+header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 14px 20px;
+  text-align: center;
+}
+.header-sub {
+  font-size: 11px;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  margin-bottom: 2px;
+}
+.header-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.header-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.header-title {
+  font-size: 20px;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* モード切り替えタブ */
+.tab-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+.tab-container {
+  display: flex;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 480px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab-btn.active[data-mode="entry"] { background: var(--entry-color); color: white; }
+.tab-btn.active[data-mode="exit"] { background: var(--exit-color); color: white; }
+.tab-btn.active[data-mode="re_entry"] { background: var(--reentry-color); color: white; }
+
+#current-mode-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-top: 10px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--entry-color);
+  transition: background 0.2s ease;
+}
+
+/* メインレイアウト */
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 90%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  main {
+    flex-direction: column;
+  }
+}
+
+.card {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 280px;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+/* スキャン枠 */
+.scan-frame {
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  width: 70%;
+  height: 70%;
+  border: 2px dashed var(--primary-color);
+  border-radius: 8px;
+  box-sizing: border-box;
+  z-index: 5;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+}
+.scan-frame.detected {
+  border: 3px solid var(--entry-color);
+  opacity: 1;
+  background: rgba(22, 163, 74, 0.05);
+}
+
+/* 読み取り停止中表示 */
+#pause-message {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-sub);
+  z-index: 4;
+}
+
+/* 結果表示 */
+.result-placeholder {
+  font-size: 14px;
+  color: var(--text-sub);
+  padding: 24px;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* エラー・警告表示 */
+.error-container {
+  border-left: 4px solid var(--error-color);
+  padding-left: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.error-title {
+  color: var(--error-color);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px; 
+}
+.error-instruction {
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.warning-container {
+  border-left: 4px solid var(--exit-color);
+  padding-left: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.warning-title {
+  color: var(--exit-color);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px; 
+}
+.warning-instruction {
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* コントロールパネル */
+.control-panel {
+  text-align: center;
+  padding-bottom: 30px;
+}
+.btn-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-btn {
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: white;
+  background-color: var(--primary-color);
+  transition: background-color 0.15s ease;
+}
+.action-btn:hover {
+  opacity: 0.9;
+}
+.btn-orange {
+  background-color: #475569;
+}
+
+#camera-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: white;
+  font-size: 13px;
+  color: var(--text-main);
+  min-width: 160px;
+}
+#switch-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+#switch-btn:hover {
+  background: #f1f5f9;
+}
+
+footer {
+  background-color: #ffffff;
+  color: var(--text-sub);
+  font-size: 11px;
+  padding: 14px;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Face ID風モーダル・オーバーレイ */
+#magsafe-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  padding: 20px;
+  box-sizing: border-box;
+}
+#magsafe-overlay.active { opacity: 1; }
+
+.faceid-modal {
+  background: #ffffff;
+  padding: 24px 32px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  transform: scale(0.85);
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+  min-width: 180px;
+}
+#magsafe-overlay.active .faceid-modal {
+  transform: scale(1);
+}
+
+/* Face ID SVG アニメーション */
+.faceid-svg {
+  width: 76px;
+  height: 76px;
+}
+.faceid-circle {
+  fill: none;
+  stroke: var(--magsafe-color);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-dasharray: 264;
+  stroke-dashoffset: 264;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+#magsafe-overlay.animate .faceid-circle {
+  animation: strokeCircle 0.45s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.faceid-check {
+  fill: none;
+  stroke: var(--magsafe-color);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+}
+#magsafe-overlay.animate .faceid-check {
+  animation: strokeCheck 0.35s 0.25s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes strokeCircle {
+  from { stroke-dashoffset: 264; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes strokeCheck {
+  from { stroke-dashoffset: 80; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* ローディング時アニメーション */
+#magsafe-overlay.loading .faceid-circle {
+  stroke: var(--primary-color);
+  stroke-dasharray: 264;
+  stroke-dashoffset: 180;
+  animation: spin 0.8s linear infinite;
+  transform-origin: center;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#magsafe-text {
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+}
+
+#magsafe-subtext {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error-color);
+  background: #fef2f2;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-align: center;
+  max-width: 100%;
+}
+
+.status-ok { --magsafe-color: #29d892; --ci-soft: #c4efdf; }
+.status-exit { --magsafe-color: var(--exit-color); }
+.status-reentry { --magsafe-color: var(--reentry-color); --ci-soft: #c4d5fa; }
+.status-error { --magsafe-color: var(--error-color); }
+.status-warning { --magsafe-color: var(--exit-color); }
+
+/* 入場開始前全画面オーバーレイ */
+#pre-entry-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none; /* JSで自動制御 */
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 20px;
+  box-sizing: border-box;
+  pointer-events: auto; /* 下の要素を一切操作させない */
+}
+
+.pre-entry-text {
+  font-size: clamp(26px, 5.5vw, 46px);
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  letter-spacing: 1.5px;
+  line-height: 1.3;
+  user-select: none;
+  text-shadow: 
+    -2px -2px 0 #ffffff,  
+     2px -2px 0 #ffffff,
+    -2px  2px 0 #ffffff,
+     2px  2px 0 #ffffff,
+     0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* 完了チェックマーク アニメーション */
+.ci-svg {
+  display: block;
+  width: 110px;
+  height: 110px;
+  margin: -17px 0;
+}
+.ci-soft, .ci-main {
+  transform-origin: 600px 604.4px;
+  transform: scale(0);
+}
+.ci-soft { fill: var(--ci-soft); }
+.ci-main { fill: var(--magsafe-color); }
+.ci-check {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 70.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 520;
+  stroke-dashoffset: 520;
+  opacity: 0;
+}
+.ci-soft  { animation: ci-soft 1840ms linear both; }
+.ci-main  { animation: ci-main 1840ms linear both; }
+.ci-check { animation: ci-check 1840ms linear both; }
+
+@keyframes ci-soft {
+  0% { transform: scale(0); opacity: 1; }
+  1.848% { transform: scale(0.0653); }
+  4.022% { transform: scale(0.1406); }
+  5.652% { transform: scale(0.2314); }
+  7.283% { transform: scale(0.3501); }
+  9.457% { transform: scale(0.5189); }
+  11.087% { transform: scale(0.7024); }
+  12.717% { transform: scale(0.8042); }
+  14.891% { transform: scale(0.8606); }
+  16.522% { transform: scale(0.8969); }
+  18.152% { transform: scale(0.9222); }
+  20.326% { transform: scale(0.9405); }
+  21.957% { transform: scale(0.9545); }
+  23.587% { transform: scale(0.9651); }
+  25.761% { transform: scale(0.9733); }
+  27.391% { transform: scale(0.9793); }
+  29.022% { transform: scale(0.9839); }
+  31.196% { transform: scale(0.987); }
+  32.826% { transform: scale(0.9892); }
+  34.457% { transform: scale(0.9901); }
+  36.63% { transform: scale(0.9911); }
+  38.261% { transform: scale(0.9935); }
+  39.891% { transform: scale(0.9957); }
+  42.065% { transform: scale(0.9974); }
+  43.696% { transform: scale(0.9988); }
+  45.326% { transform: scale(1); }
+  61.63% { transform: scale(1); }
+  63.804% { transform: scale(1.0079); }
+  65.435% { transform: scale(1.0226); }
+  67.065% { transform: scale(1.039); opacity: 1; }
+  69.239% { transform: scale(1.0566); }
+  70.87% { transform: scale(1.0751); }
+  72.5% { transform: scale(1.0941); opacity: 0.98; }
+  74.674% { transform: scale(1.1137); opacity: 0.9; }
+  76.304% { transform: scale(1.1334); opacity: 0.87; }
+  77.935% { transform: scale(1.1534); opacity: 0.85; }
+  80.109% { transform: scale(1.1736); opacity: 0.83; }
+  81.739% { transform: scale(1.1938); opacity: 0.78; }
+  83.37% { transform: scale(1.2138); opacity: 0.73; }
+  85.543% { transform: scale(1.2338); opacity: 0.65; }
+  87.174% { transform: scale(1.2538); opacity: 0.59; }
+  88.804% { transform: scale(1.2733); opacity: 0.48; }
+  90.978% { transform: scale(1.2921); opacity: 0.34; }
+  92.609% { transform: scale(1.3101); opacity: 0.21; }
+  94.239% { transform: scale(1.3272); opacity: 0.12; }
+  96.413% { transform: scale(1.3424); opacity: 0.06; }
+  98.043% { transform: scale(1.3544); opacity: 0.025; }
+  99.674% { transform: scale(1.3641); opacity: 0; }
+  100% { transform: scale(1.3629); opacity: 0; }
+}
+@keyframes ci-main {
+  0% { transform: scale(0); }
+  9.457% { transform: scale(0); }
+  11.087% { transform: scale(0.0687); }
+  12.717% { transform: scale(0.142); }
+  14.891% { transform: scale(0.2217); }
+  16.522% { transform: scale(0.3107); }
+  18.152% { transform: scale(0.4141); }
+  20.326% { transform: scale(0.544); }
+  21.957% { transform: scale(0.7349); }
+  23.587% { transform: scale(0.8838); }
+  25.761% { transform: scale(0.9308); }
+  27.391% { transform: scale(0.9535); }
+  29.022% { transform: scale(0.9672); }
+  31.196% { transform: scale(0.9761); }
+  32.826% { transform: scale(0.9826); }
+  34.457% { transform: scale(0.9875); }
+  36.63% { transform: scale(0.9908); }
+  38.261% { transform: scale(0.9935); }
+  39.891% { transform: scale(0.9957); }
+  42.065% { transform: scale(0.9973); }
+  43.696% { transform: scale(0.9988); }
+  45.326% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes ci-check {
+  0% { opacity: 0; stroke-dashoffset: 520; }
+  47.446% { opacity: 0; }
+  47.5% { opacity: 1; stroke-dashoffset: 516.5; }
+  49.13% { stroke-dashoffset: 510; }
+  50.761% { stroke-dashoffset: 500.5; }
+  52.935% { stroke-dashoffset: 486.5; }
+  54.565% { stroke-dashoffset: 468.5; }
+  56.196% { stroke-dashoffset: 443.5; }
+  58.37% { stroke-dashoffset: 409.5; }
+  60% { stroke-dashoffset: 361; }
+  61.63% { stroke-dashoffset: 287.5; }
+  63.804% { stroke-dashoffset: 157.5; }
+  65.435% { stroke-dashoffset: 37.5; }
+  67.065% { stroke-dashoffset: 4.5; }
+  69.239% { stroke-dashoffset: 1.6; }
+  100% { opacity: 1; stroke-dashoffset: 1.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ci-soft, .ci-main, .ci-check { animation: none; }
+  .ci-soft { display: none; }
+  .ci-main { transform: none; }
+  .ci-check { opacity: 1; stroke-dashoffset: 0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-sub">一高祭 ・ 文化部門</div>
+  <div class="header-title-container">
+    <img class="header-logo" src="logo.png" alt="Logo">
+    <h1 class="header-title">チェックインシステム</h1>
+  </div>
+</header>
+
+<div class="tab-wrapper">
+  <div class="tab-container">
+    <button class="tab-btn active" data-mode="entry" onclick="setMode('entry')">初回入場</button>
+    <button class="tab-btn" data-mode="exit" onclick="setMode('exit')">一時退場</button>
+    <button class="tab-btn" data-mode="re_entry" onclick="setMode('re_entry')">再入場</button>
+  </div>
+  <div id="current-mode-badge">現在のモード: 初回入場</div>
+</div>
+
+<main>
+  <div class="card">
+    <div class="scan-frame" id="scan-frame"></div>
+    <div id="pause-message">読み取り停止中</div>
+    <video id="video" autoplay playsinline></video>
+
+    <div id="magsafe-overlay">
+      <div class="faceid-modal">
+        <div id="magsafe-icon-box"></div>
+        <div id="magsafe-text">読み取り中...</div>
+        <div id="magsafe-subtext"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="result-placeholder" id="result-placeholder" style="text-align: center;">ここにスキャン結果が表示されます</div>
+  </div>
+</main>
+
+<div class="control-panel">
+  <div class="btn-container">
+    <button id="start-btn" class="action-btn" onclick="startCamera()">カメラ開始</button>
+    <button id="pause-btn" class="action-btn btn-orange" onclick="togglePause()" style="display:none;">一時停止</button>
+
+    <select id="camera-select" aria-label="カメラ選択"></select>
+    <button id="switch-btn" onclick="switchCamera()">切替</button>
+  </div>
+</div>
+
+<!-- 撮影許可選択モーダル -->
+<div id="photo-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.6); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:100; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;">
+  <div style="background:#ffffff; padding:24px 28px; border-radius:16px; max-width:380px; width:100%; text-align:center; box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+    <h3 style="margin:0 0 12px 0; color:var(--text-main); font-size:18px; font-weight:700;">撮影許可証の交付</h3>
+    <p style="margin:0 0 20px 0; color:var(--text-sub); font-size:14px; line-height:1.5;">撮影許可証の交付を希望しますか？</p>
+    <div style="display:flex; gap:12px; justify-content:center;">
+      <button id="photo-yes-btn" style="flex:1; padding:12px 16px; background:var(--entry-color); color:white; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; transition:opacity 0.15s ease;">はい</button>
+      <button id="photo-no-btn" style="flex:1; padding:12px 16px; background:#64748b; color:white; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; transition:opacity 0.15s ease;">いいえ</button>
+    </div>
+  </div>
+</div>
+
+<!-- 【追加】9:30入場開始前 オーバーレイ -->
+<div id="pre-entry-overlay">
+  <div class="pre-entry-text">9:30より入場を開始します</div>
+</div>
+
+<footer>
+  Powered by Google Apps Script &amp; ZXing (Zebra Crossing)
+</footer>
+
+<script>
+const GAS_URL = "https://script.google.com/YOUR_URL";
+
+/* -------------------------------------------------------------
+   【時間設定】9:30入場開始 アナウンス制御設定
+   noticeStart: 画面を暗転ロックしてアナウンス表示する開始時刻 (9:20)
+   entryStart : 入場開始時刻 (9:30)
+------------------------------------------------------------- */
+const PRE_ENTRY_CONFIG = {
+  noticeStartHour: 09,
+  noticeStartMinute: 20,
+  entryStartHour: 09,
+  entryStartMinute: 30
+};
+
+let currentMode = "entry"; 
+let scanFrame = document.getElementById("scan-frame");
+let pauseMessage = document.getElementById("pause-message");
+let pauseBtn = document.getElementById("pause-btn");
+let resultPlaceholder = document.getElementById("result-placeholder");
+let isProcessing = false;
+let isPaused = true; 
+let isPreNoticeActive = false; // アナウンスロック中フラグ
+let audioCtx = null;
+
+let codeReader = null;
+let currentDeviceId = null;
+let videoInputs = [];
+const cameraSelect = document.getElementById('camera-select');
+
+let lastInvalidId = ""; 
+
+function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
+function fetchWithRetry(url, options = {}, retries = 1, timeoutMs = 8000) {
+  return fetchWithTimeout(url, options, timeoutMs).catch(err => {
+    if (retries > 0) {
+      return fetchWithRetry(url, options, retries - 1, timeoutMs);
+    }
+    throw err;
+  });
+}
+
+/* -------------------------------------------------------------
+   時刻監視ロジック（1秒ごとにチェックして自動ロック＆自動解除）
+------------------------------------------------------------- */
+function checkPreNoticeTime() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+
+  const nowSec = h * 3600 + m * 60 + s;
+  const noticeSec = PRE_ENTRY_CONFIG.noticeStartHour * 3600 + PRE_ENTRY_CONFIG.noticeStartMinute * 60;
+  const entrySec = PRE_ENTRY_CONFIG.entryStartHour * 3600 + PRE_ENTRY_CONFIG.entryStartMinute * 60;
+
+  const overlay = document.getElementById("pre-entry-overlay");
+
+  // 9:20:00 〜 9:29:59 の間はロック画面を表示
+  if (nowSec >= noticeSec && nowSec < entrySec) {
+    if (!isPreNoticeActive) {
+      isPreNoticeActive = true;
+      overlay.style.display = "flex";
+    }
+  } else {
+    // 9:30:00 以降、または 9:20 未満の場合は自動でロック解除
+    if (isPreNoticeActive) {
+      isPreNoticeActive = false;
+      overlay.style.display = "none";
+    }
+  }
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  lastInvalidId = ""; 
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+
+  let badge = document.getElementById("current-mode-badge");
+  if (mode === 'entry') {
+    badge.innerText = "現在のモード: 初回入場";
+    badge.style.background = "var(--entry-color)";
+  } else if (mode === 'exit') {
+    badge.innerText = "現在のモード: 一時退場";
+    badge.style.background = "var(--exit-color)";
+  } else if (mode === 're_entry') {
+    badge.innerText = "現在のモード: 再入場";
+    badge.style.background = "var(--reentry-color)";
+  }
+}
+
+function playTone(type) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  let osc = audioCtx.createOscillator();
+  let gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === "ok") {
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.stop(audioCtx.currentTime + 0.15);
+  } else if (type === "exit") {
+    osc.frequency.setValueAtTime(587, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.stop(audioCtx.currentTime + 0.15);
+  } else {
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+    osc.stop(audioCtx.currentTime + 0.4);
+  }
+}
+
+function initScanner(deviceId = null) {
+  if (codeReader) {
+    codeReader.reset();
+  }
+
+  const hints = new Map();
+  const formats = [ ZXing.BarcodeFormat.DATA_MATRIX ];
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+  codeReader = new ZXing.BrowserMultiFormatReader(hints, 30);
+
+  codeReader.decodeFromVideoDevice(deviceId, 'video', (result, err) => {
+    // ロック中（isPreNoticeActive）はQR処理を実行しない
+    if (result && !isProcessing && !isPaused && !isPreNoticeActive) {
+      isProcessing = true;
+      scanFrame.classList.add("detected");
+      processTicket(result.text);
+    } else if (err && err.name !== "NotFoundException") {
+      console.warn("[スキャンエラー]", err.name, err.message);
+    }
+  })
+  .then(() => {
+    populateCameraList();
+  })
+  .catch(err => {
+    console.error("Camera Init Error: ", err);
+    alert("カメラの起動に失敗しました。カメラの権限を確認してください。");
+    document.getElementById("start-btn").style.display = "inline-block";
+    pauseBtn.style.display = "none";
+  });
+}
+
+function startCamera() {
+  document.getElementById("start-btn").style.display = "none";
+  pauseBtn.style.display = "inline-block";
+  pauseMessage.style.display = "none";
+  scanFrame.style.display = "block";
+  setMode("entry");
+  isPaused = false;
+  isProcessing = false;
+
+  initScanner(currentDeviceId);
+}
+
+function togglePause() {
+  if (!isPaused) {
+    isPaused = true;
+    isProcessing = true;
+    pauseMessage.style.display = "flex";
+    scanFrame.style.display = "none";
+    pauseBtn.innerHTML = "再開";
+
+    if (codeReader) {
+      codeReader.reset();
+    }
+  } else {
+    isPaused = false;
+    isProcessing = false;
+    pauseMessage.style.display = "none";
+    scanFrame.style.display = "block";
+    pauseBtn.innerHTML = "一時停止";
+    initScanner(currentDeviceId);
+  }
+}
+
+function processTicket(qrData) {
+  if (isPaused || isPreNoticeActive) return;
+
+  let ticketId = "";
+  let decodedData;
+  try {
+    decodedData = decodeURIComponent(qrData);
+  } catch (e) {
+    decodedData = qrData;
+  }
+
+  if (decodedData.includes("id=")) {
+    ticketId = decodedData.split("id=")[1].split("&")[0].trim();
+  } else if (decodedData.startsWith("TKT-")) {
+    ticketId = decodedData.trim();
+  } else {
+    if (qrData === lastInvalidId || decodedData === lastInvalidId) {
+      resetScanImmediately();
+      return;
+    }
+    lastInvalidId = qrData;
+    showInvalidTicketError(qrData);
+    return;
+  }
+
+  if (!ticketId) {
+    if (qrData === lastInvalidId) {
+      resetScanImmediately();
+      return;
+    }
+    lastInvalidId = qrData;
+    showInvalidTicketError(qrData);
+    return;
+  }
+
+  if (ticketId === lastInvalidId || qrData === lastInvalidId) {
+    resetScanImmediately();
+    return;
+  }
+
+  triggerMagsafe("loading", "通信中...", "");
+
+  fetchWithRetry(GAS_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      ticketId: ticketId,
+      mode: currentMode
+    })
+  }, 1, 8000)
+  .then(res => res.text())
+  .then(result => {
+    const parts = result.split("|");
+    const status = parts[0];
+    const ticketPart = (parts[1] || "").trim().toLowerCase();
+
+    lastInvalidId = "";
+
+    if (status === "OK") {
+      triggerMagsafe("ok", "入場受付完了", "ok", "", () => {
+        showPhotoModal(ticketId);
+      });
+      resultPlaceholder.innerHTML = `<b style="color:var(--entry-color); font-size:20px;">【成功】初回入場</b><br><br><b>ID:</b> ${ticketId}<br><b>時刻:</b> ${new Date().toLocaleTimeString()}`;
+    }
+    else if (status === "EXIT_OK") {
+      triggerMagsafe("exit", "一時退場完了", "exit");
+      resultPlaceholder.innerHTML = `<b style="color:var(--exit-color); font-size:20px;">【退場】一時退場確認</b><br><br><b>ID:</b> ${ticketId}<br><b>時刻:</b> ${new Date().toLocaleTimeString()}`;
+    }
+    else if (status === "RE_ENTRY_OK") {
+      triggerMagsafe("reentry", "再入場完了", "ok");
+      resultPlaceholder.innerHTML = `<b style="color:var(--reentry-color); font-size:20px;">【成功】再入場</b><br><br><b>ID:</b> ${ticketId}<br><b>時刻:</b> ${new Date().toLocaleTimeString()}`;
+    }
+    else if (status === "notfound") {
+      triggerMagsafe("error", "未登録チケット", "invalid", "台帳に見つかりません");
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">未登録のチケット</div>
+          <div class="error-instruction">
+            このチケットIDはスプレッドシートに記録されていません。<br>
+            チケットが偽造・不正なものでないか確認し、必要であれば本部へ連絡してください。
+          </div>
+        </div>`;
+    }
+    else if (status === "WRONG_TIME_A" || status === "WRONG_TIME_B" || status === "WRONG_TIME_C") {
+      const partKey = status.replace("WRONG_TIME_", "");
+      const partLabels = {
+        A: "Aパート（9:30〜）",
+        B: "Bパート（11:00〜）",
+        C: "Cパート（13:00〜）"
+      };
+      const label = partLabels[partKey] || "対象パート";
+      triggerMagsafe("error", "時間帯エラー", "error", `${label}はまだ入場開始前です`);
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">時間帯エラー</div>
+          <div class="error-instruction">
+            このチケットは<b>${label}</b>用です。<br>
+            まだこのパートの入場開始時刻になっていません。開始時刻を過ぎてから再度スキャンしてください。
+          </div>
+        </div>`;
+    }
+    else if (status === "already") {
+      triggerMagsafe("warning", "処理済みチケットです", "error", "入場状況をご確認ください");
+      resultPlaceholder.innerHTML = `
+        <div class="warning-container">
+          <div class="warning-title">処理済みのチケットです</div>
+          <div class="warning-instruction">
+            このチケットは既に<b>初回入場</b>または<b>一時退場</b>の処理が完了しています。<br>
+            現在「一時退場中」の場合は、上部タブ<b>「再入場」</b>に切り替えてから再度スキャンしてください。<br>
+            それ以外の場合は二重利用でないか確認し、本部へご連絡ください。
+          </div>
+        </div>`;
+    }
+    else if (status === "ALREADY_IN") {
+      triggerMagsafe("error", "重複エラー（入場中）", "error", "既に入場中のチケットです");
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">重複エラー（入場中）</div>
+          <div class="error-instruction">
+            このチケットは既に入場中（初回入場または再入場済み）です。<br>
+            二重利用でないか確認してください。
+          </div>
+        </div>`;
+    }
+    else if (status === "ALREADY_OUT" && currentMode === "exit") {
+      triggerMagsafe("error", "重複エラー（退場済み）", "error", "既に一時退場処理済みです");
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">重複エラー（退場済み）</div>
+          <div class="error-instruction">
+            このチケットは既に一時退場処理が完了しています。<br>
+            二重操作でないか確認してください。
+          </div>
+        </div>`;
+    }
+    else if (status === "ERROR_NOT_IN_YET") {
+      const modeLabel = currentMode === "exit" ? "一時退場" : "再入場";
+      triggerMagsafe("warning", "入場記録がありません", "error", "「初回入場」タブでスキャンしてください");
+      resultPlaceholder.innerHTML = `
+        <div class="warning-container">
+          <div class="warning-title">まだ入場していないチケットです</div>
+          <div class="warning-instruction">
+            このチケットはまだ一度も入場処理が行われていないため、<b>${modeLabel}</b>として処理できません。<br>
+            上部タブ<b>「初回入場」</b>に切り替えてから再度スキャンしてください。
+          </div>
+        </div>`;
+    }
+    else if (status === "BUSY") {
+      triggerMagsafe("error", "サーバー混雑中", "error", "少し待って再度スキャンしてください");
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">サーバー混雑中</div>
+          <div class="error-instruction">
+            他の端末からの処理と重なったため、一時的に処理できませんでした。<br>
+            数秒待ってから、もう一度スキャンしてください。
+          </div>
+        </div>`;
+    }
+    else if (status === "SERVER_ERROR") {
+      triggerMagsafe("error", "サーバーエラー", "error", "本部にご連絡ください");
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">サーバーエラー</div>
+          <div class="error-instruction">
+            サーバー側で処理中にエラーが発生しました。<br>
+            再度スキャンしても解決しない場合は、本部へご連絡ください。
+          </div>
+        </div>`;
+    }
+    else {
+      lastInvalidId = ticketId;
+      triggerMagsafe("error", "処理エラー", "error", "本部にご連絡ください");
+      resultPlaceholder.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">予期しないエラー</div>
+          <div class="error-instruction">
+            想定外の応答を受信しました（ステータス: ${status || "不明"}）。<br>
+            お手数ですが本部へご連絡ください。
+          </div>
+        </div>`;
+    }
+  })
+  .catch(err => {
+    triggerMagsafe("error", "通信エラー", "error", "電波状況を確認してください");
+    resultPlaceholder.innerHTML = `
+      <div class="error-container">
+        <div class="error-title">通信エラー</div>
+        <div class="error-instruction">
+          データの送信に失敗しました。電波状況を確認し、再度スキャンしてください。
+        </div>
+      </div>`;
+  });
+}
+
+function resetScanImmediately() {
+  scanFrame.classList.remove("detected");
+  if (!isPaused) {
+    setTimeout(() => { isProcessing = false; }, 300);
+  }
+}
+
+function showInvalidTicketError(qrData) {
+  triggerMagsafe("error", "無効なコード", "invalid", "チケットの確認をお願いします");
+  resultPlaceholder.innerHTML = `
+    <div class="error-container">
+      <div class="error-title">チケットエラー</div>
+      <div class="error-instruction">
+        有効なチケットコードではありません。<br>
+        問題がある場合は本部へ連絡してください。
+      </div>
+    </div>`;
+  logInvalidQR(qrData);
+}
+
+function logInvalidQR(rawCode) {
+  fetch(GAS_URL + "?mode=log_invalid&data=" + encodeURIComponent(rawCode), { method: "POST" });
+}
+
+function triggerMagsafe(statusClass, text, soundType, subText = "", onComplete = null) {
+  let overlay = document.getElementById("magsafe-overlay");
+  let iconBox = document.getElementById("magsafe-icon-box");
+  let txtNode = document.getElementById("magsafe-text");
+  let subTxtNode = document.getElementById("magsafe-subtext");
+
+  iconBox.innerHTML = "";
+  subTxtNode.innerText = "";
+  subTxtNode.style.display = "none";
+
+  if (statusClass === "loading") {
+    overlay.className = "active loading";
+    txtNode.innerText = text;
+    iconBox.innerHTML = `
+      <svg class="faceid-svg" viewBox="0 0 100 100">
+        <circle class="faceid-circle" cx="50" cy="50" r="42"></circle>
+      </svg>`;
+    return;
+  }
+
+  let svgContent = "";
+  if (statusClass === "ok" || statusClass === "reentry") {
+    svgContent = `
+      <svg class="ci-svg" viewBox="0 0 1200 1200" aria-hidden="true">
+        <circle class="ci-soft" cx="600" cy="593.8" r="415.3"></circle>
+        <circle class="ci-main" cx="600" cy="593.8" r="414.9"></circle>
+        <path class="ci-check" d="M406.9 610.9 L527.3 728.6 L770.9 477.4"></path>
+      </svg>`;
+  } else if (statusClass === "exit") {
+    svgContent = `
+      <svg class="faceid-svg" viewBox="0 0 100 100">
+        <circle class="faceid-circle" cx="50" cy="50" r="42"></circle>
+        <polyline class="faceid-check" points="45 35 60 50 45 65"></polyline>
+        <line class="faceid-check" x1="60" y1="50" x2="28" y2="50"></line>
+      </svg>`;
+  } else if (statusClass === "error" || statusClass === "warning") {
+    svgContent = `
+      <svg class="faceid-svg" viewBox="0 0 100 100">
+        <circle class="faceid-circle" cx="50" cy="50" r="42"></circle>
+        <line class="faceid-check" x1="35" y1="35" x2="65" y2="65"></line>
+        <line class="faceid-check" x1="65" y1="35" x2="35" y2="65"></line>
+      </svg>`;
+  }
+
+  iconBox.innerHTML = svgContent;
+  txtNode.innerText = text;
+
+  if (subText) {
+    subTxtNode.innerText = subText;
+    subTxtNode.style.display = "block";
+    if (statusClass === "warning") {
+      subTxtNode.style.color = "#ea580c";
+      subTxtNode.style.background = "#fff7ed";
+    } else {
+      subTxtNode.style.color = "#dc2626";
+      subTxtNode.style.background = "#fef2f2";
+    }
+  }
+
+  overlay.className = "active animate status-" + statusClass;
+
+  if (soundType) playTone(soundType);
+
+  let displayTime = (statusClass === "warning" || statusClass === "error") ? 3000 : 2200;
+
+  setTimeout(() => {
+    overlay.className = "";
+    scanFrame.classList.remove("detected");
+
+    if (onComplete) {
+      onComplete();
+    } else {
+      if (!isPaused) {
+        isProcessing = false;
+      }
+    }
+  }, displayTime);
+}
+
+function showPhotoModal(ticketId) {
+  const modal = document.getElementById("photo-modal");
+  const yesBtn = document.getElementById("photo-yes-btn");
+  const noBtn = document.getElementById("photo-no-btn");
+
+  modal.style.display = "flex";
+
+  const handleYes = () => {
+    cleanup();
+    modal.style.display = "none";
+    fetchWithRetry(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        ticketId: ticketId,
+        mode: "photo_permit"
+      })
+    }, 1, 8000)
+    .then(res => res.text())
+    .then(resText => {
+      resultPlaceholder.innerHTML += `<br><b style="color:var(--entry-color); font-size:14px;">📷 撮影許可証の交付記録完了</b>`;
+    })
+    .catch(err => {
+      console.error("撮影許可記録エラー:", err);
+    })
+    .finally(() => {
+      if (!isPaused) isProcessing = false;
+    });
+  };
+
+  const handleNo = () => {
+    cleanup();
+    modal.style.display = "none";
+    if (!isPaused) isProcessing = false;
+  };
+
+  const cleanup = () => {
+    yesBtn.removeEventListener("click", handleYes);
+    noBtn.removeEventListener("click", handleNo);
+  };
+
+  yesBtn.addEventListener("click", handleYes);
+  noBtn.addEventListener("click", handleNo);
+}
+
+function populateCameraList() {
+  if (!codeReader) return;
+
+  codeReader.listVideoInputDevices()
+  .then(devices => {
+    videoInputs = devices;
+    const prev = cameraSelect.value;
+    cameraSelect.innerHTML = '';
+    videoInputs.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.text = d.label || `カメラ ${i + 1}`;
+      cameraSelect.appendChild(opt);
+    });
+    if (currentDeviceId) {
+      cameraSelect.value = currentDeviceId;
+    } else if (prev) {
+      cameraSelect.value = prev;
+    }
+  })
+  .catch(err => console.error('populateCameraList error:', err));
+}
+
+function switchCamera() {
+  const deviceId = cameraSelect.value;
+  if (!deviceId) {
+    return alert('カメラが見つかりません。まず「カメラ開始」を押してください。');
+  }
+  currentDeviceId = deviceId;
+  initScanner(currentDeviceId);
+}
+
+// ページ読み込み時に時刻判定ループを開始
+window.addEventListener('load', () => {
+  checkPreNoticeTime();
+  setInterval(checkPreNoticeTime, 1000); // 1秒ごとに時刻判定
+});
+</script>
+</body>
+</html>
