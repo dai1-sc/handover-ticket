@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>一高祭 入場チケット申請</title>
+  <link rel="icon" href="logo_sc.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7MCVTZVKM4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-7MCVTZVKM4');
+</script>
+  <style>
+    /* ===== リセット & ベース ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:      #1a365d;
+      --navy-dark: #0f2942;
+      --navy-mid:  #2b4c7e;
+      --gold:      #c59b27;
+      --gold-light:#fefcbf;
+      --green:     #2f855a;
+      --green-bg:  #f0fff4;
+      --red:       #c53030;
+      --red-bg:    #fff5f5;
+      --orange:    #dd6b20;
+      --gray-100:  #f7fafc;
+      --gray-200:  #edf2f7;
+      --gray-300:  #e2e8f0;
+      --gray-400:  #cbd5e0;
+      --gray-600:  #4a5568;
+      --gray-800:  #1a202c;
+      --white:     #ffffff;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+      --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --transition: 0.15s ease-in-out;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f0f4f8;
+      color: var(--gray-800);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ===== カード ===== */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-300);
+      box-shadow: var(--shadow-card);
+      max-width: 520px;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ===== ローディングオーバーレイ ===== */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-panel {
+      background: var(--white);
+      padding: 20px 24px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--gray-300);
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      min-width: 220px;
+    }
+    .loader {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--navy);
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    .loading-text { font-size: 14px; color: var(--gray-800); font-weight: 700; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== ヘッダー ===== */
+    .card-header {
+      background: var(--navy-dark);
+      padding: 28px 32px 24px;
+      position: relative;
+      border-bottom: 3px solid var(--navy-mid);
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .card-header h1 {
+      color: var(--white);
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.3;
+      position: relative;
+    }
+    .card-header p {
+      color: #cbd5e0;
+      font-size: 13px;
+      margin-top: 6px;
+      position: relative;
+    }
+    .festival-logo {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      width: 160px;
+      height: auto;
+      z-index: 2;
+    }
+
+    /* ===== ステップインジケーター ===== */
+    .steps {
+      display: flex;
+      align-items: center;
+      padding: 14px 32px;
+      background: var(--gray-100);
+      border-bottom: 1px solid var(--gray-300);
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: calc(100% - 85px);
+      height: 1px;
+      background: var(--gray-300);
+      left: 85px;
+    }
+    .step.done:not(:last-child)::after { background: var(--gray-400); }
+    .step-icon {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--white);
+      border: 1px solid var(--gray-400);
+      color: var(--gray-600);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step.active .step-icon { background: var(--navy); border-color: var(--navy); color: var(--white); }
+    .step.done .step-icon { background: var(--gray-600); border-color: var(--gray-600); color: var(--white); }
+    .step-label {
+      font-size: 12px;
+      color: var(--gray-600);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .step.active .step-label { color: var(--navy); font-weight: 700; }
+    .step.done .step-label { color: var(--gray-600); }
+
+    /* ===== コンテンツ ===== */
+    .card-body { padding: 32px; }
+
+    /* ===== セクション表示制御 ===== */
+    .section {
+      display: none;
+    }
+    .section.active { display: block; }
+
+    /* ===== ログイン画面 ===== */
+    .login-intro {
+      text-align: center;
+      padding: 8px 0 20px;
+    }
+    .login-icon {
+      width: 52px; height: 52px;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      font-size: 22px;
+    }
+    .login-intro h2 {
+      font-size: 16px; font-weight: 700; color: var(--gray-800);
+      margin-bottom: 6px;
+    }
+    .login-intro p {
+      font-size: 13px; color: var(--gray-600); line-height: 1.6;
+    }
+    .login-divider {
+      text-align: center;
+      position: relative;
+      margin: 20px 0;
+      color: var(--gray-600);
+      font-size: 12px;
+    }
+    .login-divider::before, .login-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%; width: 35%; height: 1px;
+      background: var(--gray-300);
+    }
+    .login-divider::before { left: 0; }
+    .login-divider::after { right: 0; }
+    .google-btn-wrap {
+      display: flex; justify-content: center;
+    }
+    .info-box {
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 12px;
+      color: var(--gray-600);
+      display: flex; gap: 8px; align-items: flex-start;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+    .info-box .icon { flex-shrink: 0; color: var(--navy); }
+
+    /* ===== 待機列画面 ===== */
+    .waiting-wrap {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .waiting-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .waiting-wrap h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+
+    .waiting-wrap > p {
+      font-size: 13px;
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+
+    .waiting-position-card {
+      margin: 22px 0 16px;
+      padding: 20px 16px;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+    }
+
+    .waiting-position-label {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-bottom: 4px;
+    }
+
+    .waiting-position {
+      font-size: 34px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .waiting-position small {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .waiting-time {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .waiting-time strong {
+      color: var(--gray-800);
+    }
+
+    .waiting-progress {
+      height: 5px;
+      margin-top: 20px;
+      background: var(--gray-200);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .waiting-progress::before {
+      content: '';
+      display: block;
+      width: 35%;
+      height: 100%;
+      background: var(--navy);
+      border-radius: 3px;
+      animation: waitingProgress 1.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes waitingProgress {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(285%); }
+    }
+
+    .waiting-note {
+      margin-top: 18px;
+      padding: 12px;
+      text-align: left;
+      background: var(--red-bg);
+      border: 1px solid #feb2b2;
+      border-radius: var(--radius-sm);
+      color: var(--red);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .waiting-status {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--gray-600);
+    }
+
+    /* ===== ユーザー情報バー ===== */
+    .user-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: var(--navy);
+      font-weight: 500;
+    }
+    .user-bar .icon { font-size: 16px; }
+
+    /* ===== フォームグループ ===== */
+    .form-group { margin-bottom: 20px; }
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 6px;
+    }
+    .form-label .label-icon { font-size: 14px; }
+    .required-badge {
+      font-size: 10px;
+      background: var(--red);
+      color: white;
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--gray-400);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--gray-800);
+      background: var(--white);
+      transition: border-color var(--transition);
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 2px rgba(26,54,93,0.15);
+    }
+    input[type="text"]::placeholder { color: var(--gray-400); }
+
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--gray-400);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--gray-800);
+      background: var(--white);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+      transition: border-color var(--transition);
+      outline: none;
+    }
+    select:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 2px rgba(26,54,93,0.15);
+    }
+
+    /* 利用規約同意チェックボックス */
+    .terms-group {
+      margin-bottom: 20px;
+      padding: 12px;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--gray-800);
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--navy);
+      cursor: pointer;
+    }
+    .terms-link {
+      color: var(--navy);
+      font-weight: 700;
+      text-decoration: underline;
+    }
+    .terms-link:hover {
+      color: var(--navy-mid);
+    }
+
+    /* ===== 時間帯選択カード ===== */
+    .time-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .time-option {
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      padding: 12px 6px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--white);
+      transition: all var(--transition);
+      position: relative;
+      outline: none;
+    }
+    .time-option .time-note {
+      font-size: 10px;
+      line-height: 1.4;
+      color: var(--gray-600);
+      margin-top: 6px;
+    }
+    .time-option.selected .time-note { color: var(--navy-mid); }
+    .time-option.full .time-note { color: var(--gray-400); }
+    .time-option:hover:not(.full) {
+      border-color: var(--navy-mid);
+      background: var(--gray-100);
+    }
+    .time-option:focus-visible {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 2px rgba(26,54,93,0.2);
+    }
+    .time-option.selected {
+      border: 2px solid var(--navy);
+      background: #f7fafc;
+    }
+    .time-option.selected::before {
+      content: '✓';
+      position: absolute;
+      top: 6px; right: 8px;
+      font-size: 12px;
+      color: var(--navy);
+      font-weight: 700;
+    }
+    .time-option.full {
+      background: var(--gray-100);
+      color: var(--gray-400);
+      cursor: not-allowed;
+      border-color: var(--gray-200);
+    }
+    .time-option .time-label {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--gray-800);
+      margin-bottom: 6px;
+    }
+    .time-option.selected .time-label { color: var(--navy); }
+    .time-option.full .time-label { color: var(--gray-400); }
+
+    /* 残席バー */
+    .capacity-bar {
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .capacity-fill {
+      height: 100%;
+      background: var(--navy);
+      transition: width 0.3s ease;
+    }
+    .capacity-fill.few { background: var(--orange); }
+    .capacity-fill.none { background: var(--red); }
+
+    .remaining {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .remaining.ok   { color: var(--gray-600); }
+    .remaining.few  { color: var(--orange); font-weight: 700; }
+    .remaining.none { color: var(--red); font-weight: 700; }
+
+    /* ===== ボタン ===== */
+    .btn {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all var(--transition);
+      outline: none;
+      min-height: 46px;
+    }
+    .btn-primary {
+      background: var(--navy);
+      color: var(--white);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--navy-dark);
+    }
+    .btn-primary:active:not(:disabled) { background: #0a192f; }
+    .btn-primary:disabled {
+      background: var(--gray-400);
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: var(--white);
+      color: var(--gray-800);
+      border-color: var(--gray-400);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--gray-100);
+      border-color: var(--gray-600);
+    }
+    .btn-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ===== エラー ===== */
+    .error-msg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--red-bg);
+      border: 1px solid #feb2b2;
+      border-radius: var(--radius-sm);
+      color: var(--red);
+      font-size: 13px;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+    }
+    .error-msg.show { display: flex; }
+    .error-msg .icon { flex-shrink: 0; font-size: 14px; }
+
+    /* ===== 申請済み画面 ===== */
+    .already-er {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .already-icon {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--green-bg);
+      border: 1px solid #c6f6d5;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      color: var(--green);
+    }
+    .already-er h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+    .already-er p {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+    .info-card {
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .info-row:not(:last-child) {
+      border-bottom: 1px solid var(--gray-300);
+    }
+    .info-row .key {
+      color: var(--gray-600);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .info-row .val {
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+    .ticket-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .ticket-status.issued {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid #9ae6b4;
+    }
+    .ticket-status.pending {
+      background: var(--gold-light);
+      color: #744210;
+      border: 1px solid #f6e05e;
+    }
+    .edit-note {
+      font-size: 12px;
+      color: var(--gray-600);
+      text-align: center;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* ===== 完了画面 ===== */
+    .success-wrap {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .success-icon {
+      width: 56px; height: 56px;
+      background: var(--green-bg);
+      border: 1px solid #c6f6d5;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 16px;
+    }
+    .success-wrap h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+    .success-wrap p {
+      font-size: 13px;
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+    .success-note {
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-top: 20px;
+      text-align: left;
+      display: flex; gap: 8px; align-items: flex-start;
+      line-height: 1.5;
+    }
+
+    /* ===== レスポンシブ ===== */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .card-body { padding: 20px; }
+      .card-er { padding: 20px; }
+      .steps { padding: 12px 20px; }
+      .card-er h1 { font-size: 18px; }
+      .festival-logo { width: 120px; top: 20px; right: 16px; }
+      .steps { gap: 2px; }
+      .step { min-width: 0; }
+      .step-label { display: none; }
+      .step:not(:last-child)::after { left: 32px; width: calc(100% - 32px); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" role="main">
+  <!-- ローディングオーバーレイ -->
+  <div class="loading-overlay" id="loadingOverlay" aria-hidden="true">
+    <div class="loading-panel" role="status" aria-live="polite">
+      <div class="loader" aria-hidden="true"></div>
+      <div class="loading-text" id="loadingText">読み込み中...</div>
+    </div>
+  </div>
+  <!-- ヘッダー -->
+  <div class="card-header">
+    <div class="header-badge">TICKET APPLICATION</div>
+    <img src="ikko-sai-logoo.png" class="festival-logo" alt="一高祭">
+    <h1>電子チケット申請</h1>
+    <p>学校アカウントでログインして申請してください</p>
+  </div>
+
+  <!-- ステップインジケーター -->
+  <div class="steps" role="navigation" aria-label="申請ステップ">
+    <div class="step active" id="step1" aria-current="step">
+      <div class="step-icon" aria-hidden="true">1</div>
+      <span class="step-label">ログイン</span>
+    </div>
+    <div class="step" id="step2">
+      <div class="step-icon" aria-hidden="true">2</div>
+      <span class="step-label">待機列</span>
+    </div>
+    <div class="step" id="step3">
+      <div class="step-icon" aria-hidden="true">3</div>
+      <span class="step-label">情報入力</span>
+    </div>
+    <div class="step" id="step4">
+      <div class="step-icon" aria-hidden="true">4</div>
+      <span class="step-label">完了</span>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ① ログイン画面 -->
+    <div class="section active" id="loginSection" role="region" aria-label="ログイン">
+      <div class="login-intro" id="loginIntro">
+        <div class="login-icon" aria-hidden="true">🔑</div>
+        <h2>学校アカウントでログイン</h2>
+        <p>申請には学校のGoogleアカウント<br>（@g.bears.ed.jp）が必要です</p>
+      </div>
+
+      <div class="login-divider" id="loginDivider" aria-hidden="true">認証</div>
+
+      <div class="google-btn-wrap" id="googleBtnWrap">
+        <div id="g_id_onload"
+          data-client_id="254956450031-t49krcv9oncctqnvjbh5dmempvo418su.apps.googleusercontent.com"
+          data-callback="handleCredential"
+          data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-size="large" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
+      </div>
+
+      <div class="info-box" id="loginInfoBox" role="note">
+        <span class="icon" aria-hidden="true">ⓘ</span>
+        <span>個人のGoogleアカウントではログインできません。学校から配付されたアカウントをお使いください。</span>
+      </div>
+
+      <div class="error-msg" id="loginError" role="alert" aria-live="assertive">
+        <span id="loginErrorText"></span>
+      </div>
+    </div>
+
+    <!-- ② 待機列画面 -->
+    <div class="section" id="waitingSection" role="region" aria-label="待機列">
+      <div class="waiting-wrap">
+        <h2>ただいま待機列でお待ちください</h2>
+        <p>
+          現在、申請が集中しているため、順番にご案内しています。<br>
+          順番が来ると自動的に申請画面へ切り替わります。
+        </p>
+
+        <div class="waiting-position-card">
+          <div class="waiting-position-label">あなたの前にいる人数</div>
+          <div class="waiting-position" id="waitingPosition">—<small>人</small></div>
+          <div class="waiting-time">
+            予想待機時間：<strong id="waitingTime">—</strong>
+          </div>
+          <div class="waiting-progress" aria-hidden="true"></div>
+        </div>
+
+        <div class="waiting-note" role="note">
+          <strong>⚠ ページをリロードしないでください</strong><br>
+          ページをリロードすると、現在の待機列の情報が失われ、<strong>再度最後尾から並び直し</strong>になります。
+        </div>
+
+        <div class="waiting-status" id="waitingStatus" aria-live="polite">
+          順番を確認しています...
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 申請済み画面 -->
+    <div class="section" id="alreadySection" role="region" aria-label="申請済み確認">
+      <div class="already-header">
+        <div class="already-icon" aria-hidden="true">✓</div>
+        <div>
+          <h2>申請を受け付けています</h2>
+          <p>以下の内容で申請が完了しています</p>
+        </div>
+      </div>
+
+      <div class="info-card" role="table" aria-label="申請内容">
+        <div class="info-row" role="row">
+          <span class="key" role="rowheader">入場時間帯</span>
+          <span class="val" id="alreadyTime" role="cell">—</span>
+        </div>
+        <div class="info-row" role="row">
+          <span class="key" role="rowheader">申請枚数</span>
+          <span class="val" id="alreadyCount" role="cell">—</span>
+        </div>
+        <div class="info-row" role="row">
+          <span class="key" role="rowheader">チケット発行</span>
+          <span id="alreadyStatus" role="cell">—</span>
+        </div>
+      </div>
+
+      <p class="edit-note">
+        回答を変更したい場合は「申請内容を編集する」から修正できます。<br>
+        <strong>チケット発行済みの場合は編集できません。</strong>
+      </p>
+
+      <button class="btn btn-secondary" id="editBtn" onclick="startEdit()">
+        申請内容を編集する
+      </button>
+    </div>
+
+    <!-- ④ フォーム画面 -->
+    <div class="section" id="formSection" role="region" aria-label="申請フォーム">
+      <div class="user-bar" id="userInfo" aria-label="ログイン中のアカウント">
+        <span class="icon" aria-hidden="true">👤</span>
+        <span id="userEmail">—</span>
+      </div>
+
+      <div class="error-msg" id="formError" role="alert" aria-live="assertive">
+        <span class="icon" aria-hidden="true">⚠️</span>
+        <span id="formErrorText"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="name">
+          4桁番号+名前（空白なし）
+          <span class="required-badge" aria-label="必須">必須</span>
+        </label>
+        <input type="text" id="name" placeholder="例：2328中村圭孝" autocomplete="name"
+               aria-required="true" aria-describedby="nameHint">
+        <p id="nameHint" style="font-size:12px; color:var(--gray-600); margin-top:4px;">
+          チケットに印字されます。正確に入力してください。
+        </p>
+      </div>
+
+      <div class="form-group">
+        <fieldset style="border:none; padding:0; margin:0;">
+          <legend class="form-label">
+            入場時間帯
+            <span class="required-badge" aria-label="必須">必須</span>
+          </legend>
+          <div class="time-options" role="radiogroup" aria-label="入場時間帯を選択">
+            <div class="time-option" id="opt-a" role="radio" aria-checked="false" tabindex="0"
+                 onclick="selectTime('a')" onkeydown="if(event.key==='Enter'||event.key===' ')selectTime('a')">
+              <div class="time-label">Aパート（9:40）</div>
+              <div class="capacity-bar" aria-hidden="true">
+                <div class="capacity-fill" id="fill-a" style="width:0%"></div>
+              </div>
+              <div class="remaining" id="remaining-a" aria-live="polite">—</div>
+              <div class="time-note">※ステージ部門参加生徒の関係者のみ選択可</div>
+            </div>
+            <div class="time-option" id="opt-b" role="radio" aria-checked="false" tabindex="0"
+                 onclick="selectTime('b')" onkeydown="if(event.key==='Enter'||event.key===' ')selectTime('b')">
+              <div class="time-label">Bパート（11:00）</div>
+              <div class="capacity-bar" aria-hidden="true">
+                <div class="capacity-fill" id="fill-b" style="width:0%"></div>
+              </div>
+              <div class="remaining" id="remaining-b" aria-live="polite">—</div>
+            </div>
+            <div class="time-option" id="opt-c" role="radio" aria-checked="false" tabindex="0"
+                 onclick="selectTime('c')" onkeydown="if(event.key==='Enter'||event.key===' ')selectTime('c')">
+              <div class="time-label">Cパート（13:00）</div>
+              <div class="capacity-bar" aria-hidden="true">
+                <div class="capacity-fill" id="fill-c" style="width:0%"></div>
+              </div>
+              <div class="remaining" id="remaining-c" aria-live="polite">—</div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="count">
+          希望枚数
+          <span class="required-badge" aria-label="必須">必須</span>
+        </label>
+        <select id="count" aria-required="true">
+          <option value="1">1枚</option>
+          <option value="2">2枚</option>
+        </select>
+      </div>
+
+      <!-- 利用規約同意領域 -->
+      <div class="terms-group">
+        <label class="checkbox-label" for="termsCheckbox">
+          <input type="checkbox" id="termsCheckbox" onchange="toggleSubmitBtn()">
+          <span><a href="https://www.dai1-sc.online/ticket-form/terms" target="_blank" class="terms-link">利用規約</a>に同意します</span>
+        </label>
+      </div>
+
+      <button class="btn btn-primary" id="submitBtn" onclick="submitForm()" disabled>
+        <span id="submitLabel">申請する</span>
+      </button>
+    </div>
+
+    <!-- ⑤ 完了画面 -->
+    <div class="section" id="successSection" role="region" aria-label="申請完了">
+      <div class="success-wrap">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <h2>申請が完了しました</h2>
+        <p>登録されたアカウントへ確認メールをお送りしました。<br>申請内容は、チケットが発行されるまで編集可能です。</p>
+        <div class="success-note" role="note">
+          <span aria-hidden="true">ⓘ</span>
+          <span>メールが届かない場合は、迷惑メールフォルダをご確認ください。<br>
+また、ドメイン指定受信や受信拒否設定をされている場合は、「@g.bears.ed.jp」からのメールを受信できるよう設定してください。</span>
+        </div>
+      </div>
+    </div>
+
+   </div><!-- /card-body -->
+</div><!-- /card -->
+
+<script>
+  // Google Sign-In コールバック
+  window.handleCredential = handleCredential;
+
+  /* ===== 申請受付日時設定 ===== */
+  const APPLICATION_START_AT = new Date("2026-10-09T12:00:00+09:00");
+  const APPLICATION_START_LABEL = "10月09日12時00分";
+
+  const APPLICATION_END_AT = new Date("2026-10-24T23:59:00+09:00");
+  const APPLICATION_END_LABEL = "10月24日(土) 23時59分";
+
+  /* 申請終了画面の表示処理 */
+  function showApplicationClosedState() {
+    stopPolling();
+    stopWaitingPolling();
+
+    const intro = document.getElementById("loginIntro");
+    const divider = document.getElementById("loginDivider");
+    const googleWrap = document.getElementById("googleBtnWrap");
+    const infoBox = document.getElementById("loginInfoBox");
+    const error = document.getElementById("loginError");
+
+    intro.innerHTML = `
+      <div class="login-icon" style="background:var(--red-bg); border-color:#feb2b2; color:var(--red);" aria-hidden="true">🔒</div>
+      <h2 style="color:var(--red);">申請は終了しました</h2>
+      <p style="margin-top:8px;">一高祭 入場チケットの申請受付は<br><strong>${APPLICATION_END_LABEL}</strong> をもって終了いたしました。</p>
+    `;
+
+    if (divider) divider.style.display = "none";
+    if (googleWrap) googleWrap.style.display = "none";
+    if (infoBox) infoBox.style.display = "none";
+    if (error) error.style.display = "none";
+
+    setStep(1);
+    showSection('loginSection');
+  }
+
+  /* 申請開始前画面の表示処理 */
+  function showLoginBlockedState() {
+    const intro = document.getElementById("loginIntro");
+    const divider = document.getElementById("loginDivider");
+    const googleWrap = document.getElementById("googleBtnWrap");
+    const infoBox = document.getElementById("loginInfoBox");
+    const error = document.getElementById("loginError");
+
+    intro.innerHTML = `
+      <h2>申請開始前です</h2>
+      <p>申請開始は${APPLICATION_START_LABEL}からです。<br>開始時刻になったら、この画面を再読み込みしてください。</p>
+    `;
+
+    if (divider) divider.style.display = "none";
+    if (googleWrap) googleWrap.style.display = "none";
+    if (infoBox) infoBox.style.display = "none";
+    if (error) error.style.display = "none";
+
+    // 開始時刻になったら自動で再読込
+    const waitMs = APPLICATION_START_AT.getTime() - Date.now();
+    if (waitMs > 0) {
+      setTimeout(() => {
+        window.location.reload();
+      }, waitMs + 1000);
+    }
+  }
+
+  /* 申請期間のチェック */
+  function checkApplicationPeriod() {
+    const now = new Date();
+    
+    // 終了時間を超えている場合
+    if (now > APPLICATION_END_AT) {
+      showApplicationClosedState();
+      return false;
+    }
+    
+    // 開始時間前の場合
+    if (now < APPLICATION_START_AT) {
+      showLoginBlockedState();
+      return false;
+    }
+
+    return true;
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    if (!checkApplicationPeriod()) {
+      return;
+    }
+
+    // 23:59を迎えた時に自動的に「申請は終了しました」に切り替えるタイマー
+    const msUntilEnd = APPLICATION_END_AT.getTime() - Date.now();
+    if (msUntilEnd > 0) {
+      setTimeout(() => {
+        showApplicationClosedState();
+      }, msUntilEnd);
+    }
+
+    const popup = document.getElementById("testPopup");
+    if (popup) {
+      popup.addEventListener("click", function(e) {
+        if (e.target === popup) {
+          closePopup();
+        }
+      });
+    }
+
+    // Google Sign-In ボタンの再レンダリング
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      google.accounts.id.renderButton(
+        document.querySelector('.g_id_signin'),
+        { theme: 'outline', size: 'large' }
+      );
+    }
+  });
+
+  const GAS_URL = "https://script.google.com/YOUR_URL";
+  const ALLOWED_DOMAIN = "g.bears.ed.jp";
+
+  // パートごとの定員を設定
+  const CAPACITY = {
+    a: 500,
+    b: 800,
+    c: 800
+  };
+
+  const TIME_PARTS = ["a", "b", "c"];
+  const TIME_LABELS = {
+    a: "Aパート（9:40）",
+    b: "Bパート（11:00）",
+    c: "Cパート（13:00）"
+  };
+
+  let userEmail = "";
+  let selectedTime = "";
+  let isEdit = false;
+
+  // セッション（待機列）管理
+  let sessionId = "";
+  let waitingPollId = null;
+  const WAITING_POLL_MS = 3000;
+
+  // ポーリング制御
+  let pollingIntervalId = null;
+  const POLL_MS = 3000;
+
+  let loadingCount = 0;
+  function showLoading(msg = "読み込み中...") {
+    loadingCount++;
+    const ov = document.getElementById('loadingOverlay');
+    const txt = document.getElementById('loadingText');
+    txt.textContent = msg;
+    ov.classList.add('show');
+    ov.setAttribute('aria-hidden', 'false');
+  }
+  function hideLoading(force = false) {
+    if (force) loadingCount = 0;
+    else loadingCount = Math.max(0, loadingCount - 1);
+    if (loadingCount === 0) {
+      const ov = document.getElementById('loadingOverlay');
+      ov.classList.remove('show');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  /* ===== 利用規約チェックボックスによる送信ボタン有効化/無効化 ===== */
+  function toggleSubmitBtn() {
+    const chk = document.getElementById("termsCheckbox");
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = !chk.checked;
+  }
+
+  /* ===== ステップ更新 ===== */
+  function setStep(active) {
+    [1, 2, 3, 4].forEach(n => {
+      const el = document.getElementById('step' + n);
+      el.classList.remove('active', 'done');
+      el.removeAttribute('aria-current');
+      const icon = el.querySelector('.step-icon');
+      if (n < active) {
+        el.classList.add('done');
+        icon.textContent = '✓';
+      } else if (n === active) {
+        el.classList.add('active');
+        el.setAttribute('aria-current', 'step');
+        icon.textContent = n;
+      } else {
+        icon.textContent = n;
+      }
+    });
+  }
+
+  /* ===== セクション切替 ===== */
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+
+    if (id === 'formSection') {
+      showLoading('残席情報を取得しています...');
+      startPolling();
+    } else {
+      stopPolling();
+    }
+  }
+
+  /* ===== ポーリングの開始／停止 ===== */
+  function startPolling() {
+    if (pollingIntervalId) return;
+    loadRemaining();
+    pollingIntervalId = setInterval(() => {
+      loadRemaining();
+    }, POLL_MS);
+  }
+
+  function stopPolling() {
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
+      pollingIntervalId = null;
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      if (new Date() > APPLICATION_END_AT) {
+        showApplicationClosedState();
+        return;
+      }
+      if (document.getElementById('formSection').classList.contains('active')) {
+        startPolling();
+      } else if (document.getElementById('waitingSection').classList.contains('active')) {
+        checkWaitingStatus();
+        if (!waitingPollId) startWaitingPolling();
+      }
+    }
+  });
+
+  /* ===== エラー表示 ===== */
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    const textEl = document.getElementById(id + 'Text');
+    if (msg) {
+      textEl.textContent = msg;
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+    }
+  }
+
+  /* ===== Google ログイン ===== */
+  function handleCredential(response) {
+    if (new Date() > APPLICATION_END_AT) {
+      showApplicationClosedState();
+      return;
+    }
+
+    showLoading('アカウント確認中...');
+
+    try {
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64).split('').map(c =>
+          '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join('')
+      );
+      const payload = JSON.parse(jsonPayload);
+      const email = payload.email;
+
+      if (!email.endsWith("@" + ALLOWED_DOMAIN)) {
+        hideLoading();
+        showError('loginError', '学校のアカウント（@g.bears.ed.jp）でログインしてください。個人アカウントは使用できません。');
+        return;
+      }
+
+      userEmail = email;
+      document.getElementById("userEmail").textContent = "ログイン中：" + email;
+
+      fetch(GAS_URL + "?mode=check&email=" + encodeURIComponent(email))
+        .then(res => res.json())
+        .then(data => {
+          if (data.exists) {
+            const timeLabel = TIME_LABELS[data.time] || data.time;
+            document.getElementById("alreadyTime").textContent = timeLabel;
+            document.getElementById("alreadyCount").textContent = data.count + "枚";
+            const statusEl = document.getElementById("alreadyStatus");
+
+            if (data.mailSent === "sent") {
+              statusEl.innerHTML = '<span class="ticket-status issued">発行済み</span>';
+            } else {
+              statusEl.innerHTML = '<span class="ticket-status pending">準備中</span>';
+            }
+
+            setStep(3);
+            hideLoading();
+            showSection('alreadySection');
+            return;
+          }
+
+          startApplicationSession();
+        })
+        .catch(() => {
+          hideLoading();
+          showError('loginError', '通信エラーが発生しました。ページを再読み込みしてお試しください。');
+        });
+
+    } catch (err) {
+      hideLoading();
+      showError('loginError', 'ログインエラー：' + err.message);
+    }
+  }
+
+  /* ===== 申請セッション作成 ===== */
+  function startApplicationSession() {
+    fetch(GAS_URL + "?mode=get_or_create_session&email=" + encodeURIComponent(userEmail))
+      .then(res => res.json())
+      .then(data => {
+        handleSessionCreated(data);
+      })
+      .catch(err => {
+        hideLoading();
+        console.error('getOrCreateSession failed:', err);
+        showError('loginError', '申請状況の確認中にエラーが発生しました。もう一度お試しください。');
+      });
+  }
+
+  function handleSessionCreated(data) {
+    if (!data) {
+      hideLoading();
+      showError('loginError', '申請状況を確認できませんでした。もう一度お試しください。');
+      return;
+    }
+
+    if (data.isBusy) {
+      showLoading('アクセスが集中しています。自動的に再試行しています...');
+      setTimeout(startApplicationSession, 2000);
+      return;
+    }
+
+    hideLoading();
+
+    if (data.error) {
+      showError('loginError', data.error);
+      return;
+    }
+
+    sessionId = data.sessionId || "";
+
+    if (data.canProceed) {
+      setStep(3);
+      showSection('formSection');
+      return;
+    }
+
+    setStep(2);
+    updateWaitingDisplay(data.position, data.estimatedWaitTime);
+    showSection('waitingSection');
+    startWaitingPolling();
+  }
+
+  /* ===== 待機列ポーリング ===== */
+  function startWaitingPolling() {
+    stopWaitingPolling();
+    checkWaitingStatus();
+    waitingPollId = setInterval(checkWaitingStatus, WAITING_POLL_MS);
+  }
+
+  function stopWaitingPolling() {
+    if (waitingPollId) {
+      clearInterval(waitingPollId);
+      waitingPollId = null;
+    }
+  }
+
+  function checkWaitingStatus() {
+    if (!sessionId) return;
+
+    fetch(GAS_URL + "?mode=check_session_status&sessionId=" + encodeURIComponent(sessionId))
+      .then(res => res.json())
+      .then(data => {
+        if (!data) return;
+
+        if (data.isBusy) {
+          document.getElementById('waitingStatus').textContent =
+            '混雑のため確認を再試行しています...';
+          return;
+        }
+
+        if (data.error) {
+          stopWaitingPolling();
+          showError('loginError', data.error);
+          setStep(1);
+          showSection('loginSection');
+          return;
+        }
+
+        if (data.canProceed) {
+          stopWaitingPolling();
+          document.getElementById('waitingStatus').textContent =
+            '順番になりました。申請画面へ移動します...';
+
+          setTimeout(function() {
+            setStep(3);
+            showSection('formSection');
+          }, 500);
+          return;
+        }
+
+        updateWaitingDisplay(data.position, data.estimatedWaitTime);
+      })
+      .catch(err => {
+        console.warn('checkSessionStatus failed:', err);
+        document.getElementById('waitingStatus').textContent =
+          '接続を確認しています...';
+      });
+  }
+
+  function updateWaitingDisplay(position, estimatedWaitTime) {
+    const positionEl = document.getElementById('waitingPosition');
+    const timeEl = document.getElementById('waitingTime');
+    const statusEl = document.getElementById('waitingStatus');
+
+    const pos = Number(position) || 0;
+    const wait = Number(estimatedWaitTime) || 0;
+    const ahead = Math.max(0, pos - 1);
+
+    positionEl.innerHTML = ahead + '<small>人</small>';
+
+    if (wait > 0) {
+      timeEl.textContent = '約' + wait + '分';
+    } else {
+      timeEl.textContent = 'まもなくご案内';
+    }
+
+    if (ahead === 0) {
+      statusEl.textContent = 'まもなく申請画面へご案内します...';
+    } else {
+      statusEl.textContent = '自動的に順番を確認しています（約3秒ごと）';
+    }
+  }
+
+  /* ===== 残席読み込み ===== */
+  function loadRemaining() {
+    return fetch(GAS_URL + "?mode=remaining")
+      .then(res => res.json())
+      .then(data => {
+        TIME_PARTS.forEach(t => updateOption(t, data[t]));
+        hideLoading();
+      })
+      .catch((err) => {
+        console.warn("remaining fetch failed:", err);
+        hideLoading();
+      });
+  }
+
+  function updateOption(time, count) {
+    const maxCap = CAPACITY[time];
+    const remaining = maxCap - count;
+    
+    const remEl = document.getElementById("remaining-" + time);
+    const fillEl = document.getElementById("fill-" + time);
+    const opt = document.getElementById("opt-" + time);
+    
+    const usedPct = Math.min((count / maxCap) * 100, 100);
+
+    setTimeout(() => { fillEl.style.width = usedPct + "%"; }, 100);
+
+    if (remaining <= 0) {
+      remEl.textContent = "満員";
+      remEl.className = "remaining none";
+      fillEl.className = "capacity-fill none";
+      if (!opt.classList.contains('full')) {
+        opt.classList.add("full");
+        opt.setAttribute('aria-disabled', 'true');
+        opt.setAttribute('tabindex', '-1');
+        opt.onclick = null;
+        opt.onkeydown = null;
+      }
+
+      if (selectedTime === time) {
+        selectedTime = "";
+        opt.classList.remove('selected');
+        opt.setAttribute('aria-checked', 'false');
+        showError('formError', '選択していた時間帯が満員になりました。別の時間帯を選んでください。');
+      }
+    } else if (remaining <= 50) {
+      remEl.textContent = "残り" + remaining + "枚";
+      remEl.className = "remaining few";
+      fillEl.className = "capacity-fill few";
+      if (opt.classList.contains('full')) {
+        opt.classList.remove('full');
+        opt.removeAttribute('aria-disabled');
+        opt.setAttribute('tabindex', '0');
+        opt.onclick = () => selectTime(time);
+        opt.onkeydown = (e) => { if(e.key==='Enter'||e.key===' ') selectTime(time); };
+      }
+    } else {
+      remEl.textContent = "残り" + remaining + "枚";
+      remEl.className = "remaining ok";
+      fillEl.className = "capacity-fill";
+      if (opt.classList.contains('full')) {
+        opt.classList.remove('full');
+        opt.removeAttribute('aria-disabled');
+        opt.setAttribute('tabindex', '0');
+        opt.onclick = () => selectTime(time);
+        opt.onkeydown = (e) => { if(e.key==='Enter'||e.key===' ') selectTime(time); };
+      }
+    }
+  }
+
+  /* ===== 時間帯選択 ===== */
+  function selectTime(time) {
+    const opt = document.getElementById("opt-" + time);
+    if (opt.classList.contains("full")) return;
+
+    selectedTime = time;
+    TIME_PARTS.forEach(t => {
+      const el = document.getElementById("opt-" + t);
+      el.classList.remove("selected");
+      el.setAttribute('aria-checked', 'false');
+    });
+    opt.classList.add("selected");
+    opt.setAttribute('aria-checked', 'true');
+
+    showError('formError', '');
+  }
+
+  /* ===== 申請済み → 編集 ===== */
+  function startEdit() {
+    if (new Date() > APPLICATION_END_AT) {
+      alert("申請受付時間が終了したため、編集できません。");
+      showApplicationClosedState();
+      return;
+    }
+
+    showLoading('申請情報を確認しています...');
+    fetch(GAS_URL + "?mode=check&email=" + encodeURIComponent(userEmail))
+      .then(res => res.json())
+      .then(data => {
+        hideLoading();
+        if (data.mailSent === "sent") {
+          alert("チケットがすでに発行済みのため編集できません。\n生徒会にお問い合わせください。");
+          return;
+        }
+        isEdit = true;
+        setStep(3);
+        showSection('formSection');
+      })
+      .catch(() => {
+        hideLoading();
+        alert("通信エラーが発生しました。もう一度お試しください。");
+      });
+  }
+
+  let isSubmitting = false;
+
+  const SUBMIT_MAX_RETRIES = 8;
+  const SUBMIT_RETRY_DELAY_MS = 2000;
+  const SUBMIT_PROCESSING_MSG =
+    '申請処理中です。画面を閉じたりリロードしたりせず、そのままお待ちください。';
+
+  function beforeUnloadDuringSubmit(e) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+
+  function resetSubmitButton() {
+    const btn = document.getElementById("submitBtn");
+    const labelEl = document.getElementById("submitLabel");
+    isSubmitting = false;
+    window.removeEventListener('beforeunload', beforeUnloadDuringSubmit);
+    btn.disabled = false;
+    labelEl.textContent = '申請する';
+  }
+
+  async function submitForm() {
+    if (isSubmitting) return;
+
+    // 送信直前に受付終了時間チェック
+    if (new Date() > APPLICATION_END_AT) {
+      alert("申請受付時間は終了しました。");
+      showApplicationClosedState();
+      return;
+    }
+
+    const name = document.getElementById("name").value.trim();
+    const count = parseInt(document.getElementById("count").value, 10);
+    const termsChecked = document.getElementById("termsCheckbox").checked;
+
+    if (!name) { showError('formError', 'お名前を入力してください。'); return; }
+    if (!selectedTime) { showError('formError', '入場時間帯を選択してください。'); return; }
+    if (!termsChecked) { showError('formError', '利用規約への同意が必要です。'); return; }
+    showError('formError', '');
+
+    const btn = document.getElementById("submitBtn");
+    const labelEl = document.getElementById("submitLabel");
+    isSubmitting = true;
+    btn.disabled = true;
+    labelEl.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span> 送信中...';
+    window.addEventListener('beforeunload', beforeUnloadDuringSubmit);
+
+    try {
+      const res = await fetch(GAS_URL + "?mode=remaining");
+      const data = await res.json();
+      const used = data[selectedTime];
+      
+      const remaining = CAPACITY[selectedTime] - used;
+
+      if (remaining <= 0) {
+        showError('formError', '選択した時間帯が満員になりました。別の時間帯を選択してください。');
+        await loadRemaining();
+        resetSubmitButton();
+        return;
+      }
+      if (remaining < count) {
+        showError('formError', '選択した時間帯の残り枚数が不足しています。枚数を減らすか、他の時間帯を選択してください。');
+        await loadRemaining();
+        resetSubmitButton();
+        return;
+      }
+    } catch (err) {
+      showError('formError', '通信エラーが発生しました。インターネット接続を確認してください。');
+      resetSubmitButton();
+      return;
+    }
+
+    const submitMode = isEdit ? "edit" : "submit";
+    const submitUrl = GAS_URL + "?mode=" + submitMode
+        + "&email=" + encodeURIComponent(userEmail)
+        + "&name=" + encodeURIComponent(name)
+        + "&time=" + selectedTime
+        + "&count=" + count
+        + "&sessionId=" + encodeURIComponent(sessionId);
+
+    showLoading(SUBMIT_PROCESSING_MSG);
+    sendSubmission(submitUrl, 0);
+  }
+
+  function sendSubmission(url, attempt) {
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") {
+          hideLoading(true);
+          stopPolling();
+          stopWaitingPolling();
+          window.removeEventListener('beforeunload', beforeUnloadDuringSubmit);
+          isSubmitting = false;
+          setStep(4);
+          showSection('successSection');
+        } else if (data.status === "busy") {
+          if (attempt < SUBMIT_MAX_RETRIES) {
+            const loadingTextEl = document.getElementById('loadingText');
+            if (loadingTextEl) {
+              loadingTextEl.textContent =
+                '現在、他の方の申請を記録中です。自動的に再試行しています…（' + (attempt + 1) + '回目）';
+            }
+            setTimeout(() => sendSubmission(url, attempt + 1), SUBMIT_RETRY_DELAY_MS);
+          } else {
+            hideLoading(true);
+            showError('formError', '現在アクセスが集中しています。恐れ入りますが、もう一度「申請する」ボタンを押してください。');
+            resetSubmitButton();
+          }
+        } else if (data.status === "full") {
+          hideLoading(true);
+          showError('formError', '選択した時間帯が満員になりました。他の時間帯をお試しください。');
+          loadRemaining();
+          resetSubmitButton();
+        } else {
+          hideLoading(true);
+          showError('formError', 'エラーが発生しました。もう一度お試しください。');
+          resetSubmitButton();
+        }
+      })
+      .catch(() => {
+        if (attempt < SUBMIT_MAX_RETRIES) {
+          const loadingTextEl = document.getElementById('loadingText');
+          if (loadingTextEl) {
+            loadingTextEl.textContent =
+              '通信が不安定です。自動的に再試行しています…（' + (attempt + 1) + '回目）';
+          }
+          setTimeout(() => sendSubmission(url, attempt + 1), SUBMIT_RETRY_DELAY_MS);
+        } else {
+          hideLoading(true);
+          showError('formError', '通信エラーが発生しました。インターネット接続を確認してください。');
+          resetSubmitButton();
+        }
+      });
+  }
+</script>
+</body>
+</html>
