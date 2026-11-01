@@ -174,7 +174,7 @@ function generateAllTicketsBatch(batchSize, autoContinue) {
           for (let j = 0; j < count; j++) {
             const ticketId = "TKT-" + Utilities.getUuid();
             const ticketUrl =
-              "https://ticket.dai1-sc.com/?id=" +
+              "https://ticket.dai1-sc.online/?id=" +
               ticketId;
             ticketUrls.push(ticketUrl);
           }
@@ -726,7 +726,7 @@ function doGet(e) {
       partName: "制限なし（動作確認用）",
       status: "未入場",
       logoBase64: "",
-      ticketUrl: "https://ticket.dai1-sc.com/?id=" + ticketId
+      ticketUrl: "https://ticket.dai1-sc.online/?id=" + ticketId
     };
     if (mode === "json" || params.id) {
       return ContentService.createTextOutput(JSON.stringify(testResult))
@@ -778,7 +778,7 @@ function doGet(e) {
     partName: partName,
     status: status,
     logoBase64: logoBase64,
-    ticketUrl: "https://ticket.dai1-sc.com/?id=" + ticketId
+    ticketUrl: "https://ticket.dai1-sc.online/?id=" + ticketId
   };
 
   if (mode === "json" || params.id) {
@@ -848,7 +848,7 @@ function doPost(e) {
       }
 
       if (ticketId === "TEST-9999" || ticketId.indexOf("TEST-") === 0) {
-        permitSheet.appendRow([new Date(), ticketId, "【テスト用】動作確認", "test@example.com", "https://ticket.dai1-sc.com/?id=" + ticketId]);
+        permitSheet.appendRow([new Date(), ticketId, "【テスト用】動作確認", "test@example.com", "https://ticket.dai1-sc.online/?id=" + ticketId]);
         SpreadsheetApp.flush();
         return ContentService.createTextOutput("PERMIT_OK");
       }
